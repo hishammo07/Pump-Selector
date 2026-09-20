@@ -287,6 +287,35 @@ body{font-family:var(--font-body);background:#F0F4F8;min-height:100vh;-webkit-ta
 .hq-x{border:none;background:#F1F5F9;color:#B91C1C;width:26px;height:26px;border-radius:7px;font-weight:800;cursor:pointer}
 .hq-mini{flex-shrink:0;border-radius:8px;background:#0A1626;border:1px solid #1C3152}
 .tag.hq-edited{background:#FBBF2433;color:#92400E}
+
+.hq-addrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.hq-addrow [hidden]{display:none!important}
+.hq-add{border:none;background:#FBBF24;color:#0B1E3A;font:800 13px var(--font-body);padding:9px 14px;border-radius:10px;cursor:pointer;box-shadow:0 2px 0 #B4830C}
+.hq-add:active{transform:translateY(1px);box-shadow:none}
+.hq-addghost{border:1.5px solid #0B3D6B55;background:#EFF6FF;color:#0B3D6B;font:700 12px var(--font-body);padding:9px 12px;border-radius:10px;cursor:pointer}
+.ap-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:flex-end;justify-content:center;z-index:1200;backdrop-filter:blur(2px)}
+.ap-sheet{background:#fff;width:100%;max-width:640px;max-height:94vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:700px){.ap-overlay{align-items:center}.ap-sheet{border-radius:20px}}
+.ap-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(90deg,#0B3D6B,#0E2748);border-bottom:2px solid #FBBF24}
+.ap-title{font-family:var(--font-display);font-stretch:condensed;font-size:17px;font-weight:700;color:#fff}
+.ap-close{border:none;background:#ffffff1f;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-weight:800}
+.ap-body{padding:14px 16px;overflow-y:auto;flex:1}
+.ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ap-grid label{display:block;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px}
+.ap-grid label.wide{grid-column:1/-1}
+.ap-grid input,.ap-grid select,.ap-paste textarea,.ap-paste select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1.5px solid #CBD5E1;border-radius:9px;font:600 14px var(--font-body);color:#0B3D6B;background:#F8FAFC;outline:none;box-sizing:border-box}
+.ap-grid input:focus,.ap-grid select:focus,.ap-paste textarea:focus{border-color:#0B3D6B;background:#EFF6FF}
+.ap-sec{margin:16px 0 8px;font-size:11px;font-weight:800;color:#0B3D6B;text-transform:uppercase;letter-spacing:.5px}
+.ap-paste{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+.ap-paste textarea{margin-top:0;font-family:var(--font-mono);resize:vertical}
+.ap-paste-col{display:flex;flex-direction:column;gap:6px;width:84px}
+.ap-paste-col select{margin-top:0;padding:6px}
+.ap-table{width:100%;margin-bottom:8px}
+.ap-plot{margin-top:12px}
+.ap-err{min-height:20px;margin-top:8px;color:#B91C1C;font-size:12.5px;font-weight:700}
+.ap-foot{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid #E2E8F0;background:#F8FAFC}
+.ap-sp{flex:1}
+.ap-save{border:none;background:#0B3D6B;color:#FBBF24;font:800 14px var(--font-body);padding:10px 18px;border-radius:10px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -339,6 +368,7 @@ body{font-family:var(--font-body);background:#F0F4F8;min-height:100vh;-webkit-ta
       <button class="search-clear" id="searchClear" style="display:none" title="Clear">✕</button>
     </div>
   </div>
+  <div class="hq-addrow"><button type="button" class="hq-add" id="hqAddBtn">＋ Add Pump</button><button type="button" class="hq-addghost" id="hqExport" hidden>Export custom</button></div>
   <div class="family-row">
     <label>BRAND</label>
     <select class="dd-select" id="brandSelect">
@@ -771,10 +801,10 @@ let HEAD=15, FLOW=30, BRAND="All", FAMILY="All", PUMP="All", SEARCH="", SHOW_ALL
 // ═══════════════════════════════════════════════════════════
 const ALL_HEADS = PUMPS.flatMap(p=>p.curve.map(pt=>pt[0]));
 const ALL_FLOWS = PUMPS.flatMap(p=>p.curve.map(pt=>pt[1]));
-const MIN_HEAD = Math.min(...ALL_HEADS);
-const MAX_HEAD = Math.max(...ALL_HEADS);
-const MIN_FLOW = Math.min(...ALL_FLOWS);
-const MAX_FLOW = Math.max(...ALL_FLOWS);
+let MIN_HEAD = Math.min(...ALL_HEADS);
+let MAX_HEAD = Math.max(...ALL_HEADS);
+let MIN_FLOW = Math.min(...ALL_FLOWS);
+let MAX_FLOW = Math.max(...ALL_FLOWS);
 
 // ═══════════════════════════════════════════════════════════
 //  RENDER
@@ -903,7 +933,7 @@ function render() {
     const isBest=i===0;
     
     // Injecting Metadata tags conditionally
-    let metaTags = p._edited ? '<span class="tag hq-edited">✎ EDITED</span>' : "";
+    let metaTags = (p._custom ? '<span class="tag hq-edited">＋ CUSTOM</span>' : "") + (p._edited ? '<span class="tag hq-edited">✎ EDITED</span>' : "");
     if (p.phase) metaTags += `<span class="tag" style="background:#FCE7F3;color:#BE185D">⚡ ${p.phase}</span>`;
     if (p.rpm) metaTags += `<span class="tag" style="background:#F3F4F6;color:#4B5563">⚙️ ${p.rpm} RPM</span>`;
     if (p.housingMaterial) metaTags += `<span class="tag" style="background:#FEF3C7;color:#92400E">🛡️ ${p.housingMaterial}</span>`;
@@ -2319,6 +2349,7 @@ function hqModalBarHTML(st){
     (p._edited?`<button type="button" class="hq-mbtn" data-a="reset">Reset</button>`:'')+
     `<button type="button" class="hq-mbtn" data-a="copy">Copy</button>`+
     `<button type="button" class="hq-mbtn" data-a="png">PNG</button>`+
+    (p._custom?`<button type="button" class="hq-mbtn" data-a="editinfo">Edit info</button><button type="button" class="hq-mbtn" data-a="delete">Delete</button><span class="tag hq-edited">＋ CUSTOM</span>`:'')+
     (p._edited?`<span class="tag hq-edited">✎ EDITED</span>`:'');
 }
 
@@ -2407,6 +2438,8 @@ function hqMountModal(p){
     else if(a==='fit'){st.chart.fit=!st.chart.fit;st.chart.draw();}
     else if(a==='edit'){st.editing=!st.editing;st.chart.editing=st.editing;st.chart.hover=null;st.chart.draw();hqModalTable();}
     else if(a==='undo'){st.chart.undo();}
+    else if(a==='editinfo'){closeModal();hqOpenAdd(st.id);return;}
+    else if(a==='delete'){hqDeletePump(st.id);return;}
     else if(a==='reset'){hqResetPump(st.id);hqModalReload();render();}
     else if(a==='copy'){
       const txt='curve:['+[...pp.curve].sort((x,y)=>x[0]-y[0]).map(c=>`[${c[0]},${c[1]}]`).join(',')+']';
@@ -2441,9 +2474,254 @@ function hqUnmountModal(){
   hqModalState=null;
 }
 
+const HQ_CUSTOM_STORE='ces_custom_pumps_v1';
+let apState=null;
+
+function hqLoadCustom(){
+  try{
+    const raw=localStorage.getItem(HQ_CUSTOM_STORE);
+    if(!raw)return;
+    JSON.parse(raw).forEach(p=>{
+      if(!p||!p.model||!Array.isArray(p.curve)||p.curve.length<2)return;
+      if(PUMPS.some(x=>hqKey(x)===hqKey(p)))return;
+      PUMPS.push({...p,_custom:true});
+    });
+  }catch(e){}
+}
+
+function hqSaveCustom(){
+  try{
+    const list=PUMPS.filter(p=>p._custom).map(p=>{
+      const o={brand:p.brand,series:p.series,model:p.model,code:p.code,hp:p.hp,rpm:p.rpm,housingMaterial:p.housingMaterial,curve:(p._orig||p.curve).map(a=>[a[0],a[1]])};
+      if(p.phase)o.phase=p.phase;
+      return o;
+    });
+    if(list.length)localStorage.setItem(HQ_CUSTOM_STORE,JSON.stringify(list));
+    else localStorage.removeItem(HQ_CUSTOM_STORE);
+  }catch(e){}
+}
+
+function hqRecalcRanges(){
+  const hs=PUMPS.flatMap(p=>p.curve.map(c=>c[0])),qs=PUMPS.flatMap(p=>p.curve.map(c=>c[1]));
+  MIN_HEAD=Math.min(...hs);MAX_HEAD=Math.max(...hs);
+  MIN_FLOW=Math.min(...qs);MAX_FLOW=Math.max(...qs);
+  headInputEl.min=MIN_HEAD;headInputEl.max=MAX_HEAD;
+  flowInputEl.min=MIN_FLOW;flowInputEl.max=MAX_FLOW;
+  const a=document.getElementById('headRangeHint'),b=document.getElementById('flowRangeHint');
+  if(a)a.textContent=`range ${MIN_HEAD}–${MAX_HEAD}`;
+  if(b)b.textContent=`range ${MIN_FLOW}–${MAX_FLOW}`;
+}
+
+function hqRefreshBrands(){
+  const sel=document.getElementById('brandSelect');
+  const brands=[...new Set(PUMPS.map(p=>p.brand))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="All">All BRANDS</option>'+brands.map(b=>`<option value="${hqEsc(b)}">${hqEsc(b)}</option>`).join('');
+  if(BRAND!=="All"&&!brands.includes(BRAND))BRAND="All";
+  sel.value=BRAND;
+}
+
+function hqRefreshFilters(){
+  hqRefreshBrands();
+  renderSeriesSelect();
+  renderPumpSelect();
+  const cnt=document.getElementById('hqExport');
+  if(cnt)cnt.hidden=!PUMPS.some(p=>p._custom);
+}
+
+function hqPumpCode(p){
+  const q=v=>JSON.stringify(v);
+  let s=`  {brand:${q(p.brand)},series:${q(p.series)},model:${q(p.model)},code:${q(p.code||'')},hp:${p.hp}, rpm:${p.rpm||0}, housingMaterial:${q(p.housingMaterial||'')},`;
+  if(p.phase)s+=`phase:${q(p.phase)},`;
+  s+=`\n   curve:[${[...p.curve].sort((a,b)=>a[0]-b[0]).map(c=>`[${c[0]},${c[1]}]`).join(',')}]},`;
+  return s;
+}
+
+function hqCopyText(txt,btn,label){
+  const done=()=>{if(!btn)return;const o=btn.textContent;btn.textContent=label||'Copied';setTimeout(()=>{btn.textContent=o;},1300);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,()=>{});
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(_){}document.body.removeChild(ta);}
+}
+
+function hqExportCustom(btn){
+  const list=PUMPS.filter(p=>p._custom).map(p=>hqPumpCode({...p,curve:p._orig||p.curve}));
+  if(list.length)hqCopyText('  // ── CUSTOM PUMPS ──────────────────────\n'+list.join('\n'),btn);
+}
+
+function apParse(text,qFirst){
+  const nums=(text.match(/-?\d+(?:\.\d+)?/g)||[]).map(Number);
+  const rows=[];
+  for(let i=0;i+1<nums.length;i+=2)rows.push(qFirst?{h:String(nums[i+1]),q:String(nums[i])}:{h:String(nums[i]),q:String(nums[i+1])});
+  return rows;
+}
+
+function apValidPts(){
+  return apState.rows.map(r=>[parseFloat(r.h),parseFloat(r.q)]).filter(a=>isFinite(a[0])&&isFinite(a[1])&&a[0]>=0&&a[1]>=0);
+}
+
+function apTableHTML(){
+  return apState.rows.map((r,i)=>`<tr><td><input type="number" step="0.1" min="0" value="${hqEsc(r.h)}" data-i="${i}" data-f="h"></td><td><input type="number" step="0.1" min="0" value="${hqEsc(r.q)}" data-i="${i}" data-f="q"></td><td><button type="button" class="hq-x" data-del="${i}" aria-label="Delete row">✕</button></td></tr>`).join('');
+}
+
+function apPreview(){
+  if(!apState||!apState.chart)return;
+  const pts=apValidPts().map(([h,q])=>({h,q}));
+  apState.chart.setData([{id:0,label:document.getElementById('apModel').value||'New pump',color:'#38BDF8',rank:0,edited:false,pts}],{h:HEAD,q:FLOW});
+}
+
+function apCollect(){
+  const v=id=>document.getElementById(id).value.trim();
+  const errs=[];
+  const pump={brand:v('apBrand'),series:v('apSeries'),model:v('apModel'),code:v('apCode'),hp:parseFloat(v('apHp')),rpm:parseFloat(v('apRpm')),housingMaterial:v('apMat')};
+  const ph=v('apPhase');
+  if(ph)pump.phase=ph;
+  if(!pump.brand)errs.push('Brand required');
+  if(!pump.series)errs.push('Series required');
+  if(!pump.model)errs.push('Model required');
+  if(!(pump.hp>0))errs.push('HP required');
+  if(isNaN(pump.rpm))pump.rpm=0;
+  const pts=apValidPts();
+  if(pts.length<2)errs.push('At least 2 curve points');
+  pump.curve=pts.sort((a,b)=>a[0]-b[0]);
+  const dupH=pump.curve.some((c,i)=>i&&Math.abs(c[0]-pump.curve[i-1][0])<1e-9);
+  if(dupH)errs.push('Duplicate head values');
+  const clash=PUMPS.find(p=>hqKey(p)===hqKey(pump)&&p._id!==apState.id);
+  if(clash)errs.push('Same brand/model/code already exists');
+  return {pump,errs};
+}
+
+function apClose(){
+  if(apState&&apState.chart)apState.chart.destroy();
+  apState=null;
+  const o=document.getElementById('apOverlay');
+  if(o)o.remove();
+  if(!document.getElementById('modalOverlay').classList.contains('open'))document.body.style.overflow='';
+}
+
+function hqOpenAdd(id){
+  apClose();
+  const p=id===undefined?null:PUMPS[id];
+  const uniq=f=>[...new Set(PUMPS.map(x=>x[f]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+  const opt=a=>a.map(x=>`<option value="${hqEsc(x)}"></option>`).join('');
+  apState={id:p?p._id:undefined,rows:p?[...(p._orig||p.curve)].sort((a,b)=>a[0]-b[0]).map(c=>({h:String(c[0]),q:String(c[1])})):[{h:'',q:''},{h:'',q:''}],chart:null};
+  const val=(k)=>p&&p[k]!==undefined&&p[k]!==null?hqEsc(p[k]):'';
+  const o=document.createElement('div');
+  o.id='apOverlay';o.className='ap-overlay';
+  o.innerHTML=`<div class="ap-sheet" role="dialog" aria-label="${p?'Edit pump':'Add pump'}">
+    <div class="ap-head"><div class="ap-title">${p?'Edit Pump':'Add Pump'}</div><button type="button" class="ap-close" id="apX" aria-label="Close">✕</button></div>
+    <div class="ap-body">
+      <div class="ap-grid">
+        <label>Brand<input id="apBrand" list="apBrands" value="${val('brand')}" autocomplete="off"></label>
+        <label>Series<input id="apSeries" list="apSeriesList" value="${val('series')}" autocomplete="off"></label>
+        <label class="wide">Model<input id="apModel" value="${val('model')}" autocomplete="off"></label>
+        <label>Code<input id="apCode" value="${val('code')}" autocomplete="off"></label>
+        <label>HP<input id="apHp" type="number" step="0.1" min="0" value="${val('hp')}"></label>
+        <label>RPM<input id="apRpm" type="number" step="10" min="0" value="${val('rpm')}"></label>
+        <label>Phase<select id="apPhase"><option value="">—</option><option${p&&p.phase==='Single-phase'?' selected':''}>Single-phase</option><option${p&&p.phase==='Three-phase'?' selected':''}>Three-phase</option></select></label>
+        <label class="wide">Housing material<input id="apMat" list="apMats" value="${val('housingMaterial')}" autocomplete="off"></label>
+      </div>
+      <datalist id="apBrands">${opt(uniq('brand'))}</datalist><datalist id="apSeriesList">${opt(uniq('series'))}</datalist><datalist id="apMats">${opt(uniq('housingMaterial'))}</datalist>
+      <div class="ap-sec">Curve points</div>
+      <div class="ap-paste"><textarea id="apPaste" rows="2" placeholder="6 51&#10;8 47&#10;…  or  [[6,51],[8,47]]"></textarea>
+        <div class="ap-paste-col"><select id="apOrder"><option value="hq">H, Q</option><option value="qh">Q, H</option></select><button type="button" class="hq-mbtn" id="apParse">Fill</button></div></div>
+      <table class="curve-table ap-table"><thead><tr><th>Head (m)</th><th>Flow (m³/h)</th><th></th></tr></thead><tbody id="apRows">${apTableHTML()}</tbody></table>
+      <button type="button" class="hq-mbtn" id="apAddRow">＋ Point</button>
+      <div class="hq-mplot ap-plot" id="apChart"></div>
+      <div class="ap-err" id="apErr"></div>
+    </div>
+    <div class="ap-foot"><button type="button" class="hq-mbtn" id="apCopy">Copy code</button><span class="ap-sp"></span><button type="button" class="hq-mbtn" id="apCancel">Cancel</button><button type="button" class="ap-save" id="apSave">${p?'Save':'Add pump'}</button></div>
+  </div>`;
+  document.body.appendChild(o);
+  document.body.style.overflow='hidden';
+  apState.chart=new HQChart(document.getElementById('apChart'),{legend:false});
+  apPreview();
+
+  const rowsEl=document.getElementById('apRows');
+  o.addEventListener('click',e=>{if(e.target===o)apClose();});
+  document.getElementById('apX').onclick=apClose;
+  document.getElementById('apCancel').onclick=apClose;
+  document.getElementById('apAddRow').onclick=()=>{apState.rows.push({h:'',q:''});rowsEl.innerHTML=apTableHTML();};
+  document.getElementById('apParse').onclick=()=>{
+    const r=apParse(document.getElementById('apPaste').value,document.getElementById('apOrder').value==='qh');
+    if(r.length){apState.rows=r;rowsEl.innerHTML=apTableHTML();apPreview();}
+  };
+  rowsEl.addEventListener('input',e=>{
+    const i=e.target.closest('input[data-i]');if(!i)return;
+    apState.rows[+i.dataset.i][i.dataset.f]=i.value;
+    apPreview();
+  });
+  rowsEl.addEventListener('click',e=>{
+    const b=e.target.closest('[data-del]');if(!b)return;
+    apState.rows.splice(+b.dataset.del,1);
+    if(apState.rows.length<2)apState.rows.push({h:'',q:''});
+    rowsEl.innerHTML=apTableHTML();apPreview();
+  });
+  document.getElementById('apModel').addEventListener('input',apPreview);
+  document.getElementById('apCopy').onclick=e=>{
+    const {pump,errs}=apCollect();
+    const er=document.getElementById('apErr');
+    if(errs.length){er.textContent=errs.join(' · ');return;}
+    er.textContent='';
+    hqCopyText(hqPumpCode(pump),e.currentTarget);
+  };
+  document.getElementById('apSave').onclick=()=>{
+    const {pump,errs}=apCollect();
+    const er=document.getElementById('apErr');
+    if(errs.length){er.textContent=errs.join(' · ');return;}
+    let target;
+    if(apState.id!==undefined){
+      target=PUMPS[apState.id];
+      delete target._orig;target._edited=false;
+      Object.assign(target,pump);
+      if(!pump.phase)delete target.phase;
+    }else{
+      target={...pump,_custom:true,_id:PUMPS.length};
+      PUMPS.push(target);
+    }
+    hqSaveEdits();hqSaveCustom();hqRecalcRanges();
+    BRAND=target.brand;FAMILY=target.series;PUMP=target.model;SEARCH='';
+    document.getElementById('searchInput').value='';
+    document.getElementById('searchClear').style.display='none';
+    SHOW_ALL=false;
+    if(interpFlow(target.curve,HEAD)===null){
+      const hs=target.curve.map(c=>c[0]);
+      const mid=Math.round((Math.min(...hs)+Math.max(...hs))/2*2)/2;
+      HEAD=Math.min(MAX_HEAD,Math.max(MIN_HEAD,mid));
+      FLOW=Math.min(MAX_FLOW,Math.max(MIN_FLOW,Math.round(interpFlow(target.curve,HEAD)||FLOW)));
+      headInputEl.value=HEAD;flowInputEl.value=FLOW;
+    }
+    hqRefreshFilters();
+    render();
+    apClose();
+  };
+}
+
+function hqDeletePump(id){
+  const p=PUMPS[id];
+  if(!p||!p._custom)return;
+  if(!confirm(`Delete ${p.model}?`))return;
+  closeModal();
+  PUMPS.splice(id,1);
+  PUMPS.forEach((x,i)=>{x._id=i;});
+  hqSlots.clear();
+  hqSaveEdits();hqSaveCustom();hqRecalcRanges();
+  hqRefreshFilters();
+  render();
+}
+
+function hqInitAdd(){
+  document.getElementById('hqAddBtn').addEventListener('click',()=>hqOpenAdd());
+  document.getElementById('hqExport').addEventListener('click',e=>hqExportCustom(e.currentTarget));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&apState)apClose();});
+}
+
 // INIT
+hqLoadCustom();
 hqLoadEdits();
+hqRecalcRanges();
+hqRefreshBrands();
 hqInitPanel();
+hqInitAdd();
+hqRefreshFilters();
 renderSeriesSelect();
 renderPumpSelect();
 render();
